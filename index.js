@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 
 
@@ -55,27 +55,48 @@ async function run() {
     })
     // get specipfic user tutorials
     app.get('/user-tutorials/:email' , async (req ,res)=>{
-       const email = req.params.email;
-       const query = {email}
-       const result = await tutorialCollection.find(query).toArray()
-       res.send(result)
+        const email = req.params.email;
+        const query = {email}
+        const result = await tutorialCollection.find(query).toArray()
+        res.send(result)
     })
+
+
 
     // post a tutorial
     app.post("/add-tutorials", async(req,res)=>{
       const tutorialData = req.body;
-      console.log(tutorialData);
       const result = await tutorialCollection.insertOne(tutorialData);
       res.send(result)
     })
 
-// tutorial update
-// app.patch('/update-tutorials/:id', async(req,res)=>{
-//    const id = req.params.id;
-//    const query = 
-// })
+    // tutorial update 
+    app.patch('/update-tutorials/:id', async(req,res)=>{
+      const id = req.params.id;
+      const formData = req.body;
+      const filter = {_id: new ObjectId(id)};
+      const updatedData = {
+          $set : formData
+      }
 
-    
+      const result = await tutorialCollection.updateOne(filter, updatedData);
+      res.send(result)
+    })
+
+    // tutorial delete 
+    app.delete('/remove/:id', async(req,res)=>{
+      const id = req.params.id;
+      const query = {_id : new ObjectId(id)};
+      const result = await tutorialCollection.deleteOne(query);
+      res.send(result)
+    })  
+
+
+
+
+
+
+
 
 
     // Send a ping to confirm a successful connection
@@ -83,7 +104,7 @@ async function run() {
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
-    // await client.close();
+    // await client.close(); // it need to comments
   }
 }
 run().catch(console.dir);
