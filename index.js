@@ -9,7 +9,12 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 
 
 // middleware
-app.use(cors());
+app.use(cors({
+    origin:['http://localhost:5175'],
+    credentials:true,
+    optionsSuccessStatus:200
+  }
+));
 app.use(express.json())
 
 
@@ -30,11 +35,32 @@ const client = new MongoClient(uri, {
 
 // 
 async function run() {
+
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    // database
 
+    // database
+    const database = client.db("sayEasylang");
+    const tutorialCollection = database.collection("tutorials");
+
+
+
+
+
+    // get all tutorials
+    app.get('/tutorials' , async(req, res)=>{
+        const result = await tutorialCollection.find().toArray();
+        res.send(result)
+    })
+
+    // post a tutorial
+    app.post("/add-tutorials", async(req,res)=>{
+      const tutorialData = req.body;
+      console.log(tutorialData);
+      const result = await tutorialCollection.insertOne(tutorialData);
+      res.send(result)
+    })
 
 
 
@@ -46,7 +72,7 @@ async function run() {
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
-    await client.close();
+    // await client.close();
   }
 }
 run().catch(console.dir);
