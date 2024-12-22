@@ -53,6 +53,13 @@ async function run() {
         const result = await tutorialCollection.find().toArray();
         res.send(result)
     })
+    // get specipfic user tutorials
+    app.get('/user-tutorials/:email' , async (req ,res)=>{
+       const email = req.params.email;
+       const query = {email}
+       const result = await tutorialCollection.find(query).toArray()
+       res.send(result)
+    })
 
     // post a tutorial
     app.post("/add-tutorials", async(req,res)=>{
@@ -62,7 +69,11 @@ async function run() {
       res.send(result)
     })
 
-
+// tutorial update
+// app.patch('/update-tutorials/:id', async(req,res)=>{
+//    const id = req.params.id;
+//    const query = 
+// })
 
     
 
