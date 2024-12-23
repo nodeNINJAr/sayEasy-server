@@ -60,8 +60,13 @@ async function run() {
         const result = await tutorialCollection.find(query).toArray()
         res.send(result)
     })
-
-
+    // get specifice tutorial by id
+    app.get('/tutor/:id' , async(req , res )=>{
+        const id = req.params.id;
+        const query = {_id : new ObjectId(id)};
+        const result = await tutorialCollection.findOne(query);
+        res.send(result)
+    })
 
     // post a tutorial
     app.post("/add-tutorials", async(req,res)=>{
