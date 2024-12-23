@@ -101,6 +101,12 @@ async function run() {
     // post a tutorial
     app.post("/add-tutorials", async(req,res)=>{
       const tutorialData = req.body;
+      const query = { language: tutorialData.language , email:tutorialData.email };
+      // already exist
+      const alreadyExist = await tutorialCollection.findOne(query);
+      if(alreadyExist){
+         return res.status(400).send("This language already added by this user")
+      }
       const result = await tutorialCollection.insertOne(tutorialData);
       res.send(result)
     })
@@ -129,11 +135,33 @@ async function run() {
 // book tutor
 app.post('/tutor-booking' , async (req ,res)=>{
    const bookedData = req.body;
+   const query ={tutorEmail:bookedData.tutorEmail, language:bookedData.language};
+   const alredyExist = await bookedTutorsCollection.findOne(query);
+  //  validation same tutor with same category
+   if(alredyExist){
+      return res.status(400).send('This language tutor already booked ')
+   }
    const result = await bookedTutorsCollection.insertOne(bookedData);
    res.send(result);
 })
 
+// review tutor
+app.patch('/review/', async (req ,res)=>{
+   const tutorInfo = req.body;
+   const query = { _id : new ObjectId(tutorInfo.tutorId)};
+   // reviewed checked
+   const tutor = await tutorialCollection.findOne(query);
+   if(tutor.reviewedBy && tutor.reviewedBy.includes(tutorInfo._id)){
+      return res.status(400).send("You have already reviewed this tutor!");
+   }
 
+   const updateReview = {
+          $inc:{review : 1},
+          $push:{reviewedBy: tutorInfo._id},
+   }
+   const result = await tutorialCollection.updateOne(query, updateReview);
+   res.send(result)
+} )
 
 
 
