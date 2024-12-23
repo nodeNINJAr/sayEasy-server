@@ -50,9 +50,21 @@ async function run() {
 
     // get all tutorials
     app.get('/tutorials' , async(req, res)=>{
-        const result = await tutorialCollection.find().toArray();
-        res.send(result)
+         const searchData = req.query.search || "";
+          // {} for search all item 
+          let query = {};
+          if(searchData){
+            query ={  
+                language : {
+                      $regex: searchData , $options: "i"
+                },
+             }
+          } 
+          // 
+        const result = await tutorialCollection.find(query).toArray();
+        res.send(result);
     })
+
     // get specipfic user tutorials
     app.get('/user-tutorials/:email' , async (req ,res)=>{
         const email = req.params.email;
