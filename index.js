@@ -43,6 +43,8 @@ async function run() {
     // database
     const database = client.db("sayEasylang");
     const tutorialCollection = database.collection("tutorials");
+    const bookedTutorsCollection = database.collection("bookedTutors");
+
 
 
 
@@ -86,6 +88,15 @@ async function run() {
         const result = await tutorialCollection.findOne(query);
         res.send(result)
     })
+// get booed tutor
+ app.get('/booked-tutors/:email', async(req ,res)=>{
+    const buyerEmail = req.params.email;
+    const query = {userEmail: buyerEmail};
+    const result = await bookedTutorsCollection.find(query).toArray();
+    res.send(result)
+ })
+
+
 
     // post a tutorial
     app.post("/add-tutorials", async(req,res)=>{
@@ -115,7 +126,12 @@ async function run() {
       res.send(result)
     })  
 
-
+// book tutor
+app.post('/tutor-booking' , async (req ,res)=>{
+   const bookedData = req.body;
+   const result = await bookedTutorsCollection.insertOne(bookedData);
+   res.send(result);
+})
 
 
 
