@@ -56,7 +56,7 @@ async function run() {
           if(searchData){
             query ={  
                 language : {
-                      $regex: searchData , $options: "i"
+                  $regex: searchData , $options: "i"
                 },
              }
           } 
@@ -64,11 +64,18 @@ async function run() {
         const result = await tutorialCollection.find(query).toArray();
         res.send(result);
     })
-
+    // get tutorials by its category
+    app.get('/tutors/:category', async(req,res)=>{
+       const category = req.params.category;
+       console.log(category)
+       const query = {language : category};
+       const result = await tutorialCollection.find(query).toArray();
+       res.send(result)
+    })
     // get specipfic user tutorials
     app.get('/user-tutorials/:email' , async (req ,res)=>{
         const email = req.params.email;
-        const query = {email}
+        const query = {email};
         const result = await tutorialCollection.find(query).toArray()
         res.send(result)
     })
