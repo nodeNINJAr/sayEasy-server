@@ -4,7 +4,8 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 
 
 
@@ -16,7 +17,8 @@ app.use(cors({
     optionsSuccessStatus:200
   }
 ));
-app.use(express.json())
+app.use(express.json());
+app.use(cookieParser());
 
 
 
@@ -48,7 +50,24 @@ async function run() {
 
 
 
+    // verify token middleware 
+    const verifyToken = (req, res , next)=>{
+          const token = req?.cookies?.token
+          // return if token not found
+          if(!token){
+             return  res.status(401).json({message : "UnAuthorize Access"});
+          }
+          //verify 
+          jwt.verify(token, process.env.JWT_SECRET, (err , decode)=>{
+               if(err){
+                  return res.status(401).send({message : "UnAuthorize Access"})
+               }
+              req.user = decode;
+              console.log(decode.email);
+              next()
+          });
 
+    }
 
 
     // get all tutorials
@@ -76,22 +95,34 @@ async function run() {
        res.send(result)
     })
     // get specipfic user tutorials
-    app.get('/user-tutorials/:email' , async (req ,res)=>{
+    app.get('/user-tutorials/:email' ,verifyToken, async (req ,res)=>{
         const email = req.params.email;
+        // email from verify token
+        const userEmail = req?.user?.email;
+        // if email not same with login user
+         if(email !== userEmail){
+            return res.status(403).send({message : 'Forbidden Access'})
+         }
         const query = {email};
         const result = await tutorialCollection.find(query).toArray()
         res.send(result)
     })
     // get specifice tutorial by id
-    app.get('/tutor/:id' , async(req , res )=>{
+    app.get('/tutor/:id' , verifyToken, async(req , res )=>{
         const id = req.params.id;
         const query = {_id : new ObjectId(id)};
         const result = await tutorialCollection.findOne(query);
         res.send(result)
     })
-    // get booed tutor
-    app.get('/booked-tutors/:email', async(req ,res)=>{
+    // get booed tutor 
+    app.get('/booked-tutors/:email',verifyToken, async(req ,res)=>{
         const buyerEmail = req.params.email;
+        // email from verify token
+        const userEmail = req.user.email;
+        // if email not same with login user
+         if(buyerEmail !==  userEmail){
+            return res.status(403).send({message : 'Forbidden Access'})
+         }
         const query = {userEmail: buyerEmail};
         const result = await bookedTutorsCollection.find(query).toArray();
         res.send(result)
@@ -100,7 +131,7 @@ async function run() {
 
 
     // post a tutorial
-    app.post("/add-tutorials", async(req,res)=>{
+    app.post("/add-tutorials",verifyToken, async(req,res)=>{
       const tutorialData = req.body;
       const query = { language: tutorialData.language , email:tutorialData.email };
       // already exist
@@ -113,7 +144,7 @@ async function run() {
     })
 
     // tutorial update 
-    app.patch('/update-tutorials/:id', async(req,res)=>{
+    app.patch('/update-tutorials/:id',verifyToken, async(req,res)=>{
       const id = req.params.id;
       const formData = req.body;
       const filter = {_id: new ObjectId(id)};
@@ -126,7 +157,7 @@ async function run() {
     })
 
     // tutorial delete 
-    app.delete('/remove/:id', async(req,res)=>{
+    app.delete('/remove/:id',verifyToken, async(req,res)=>{
       const id = req.params.id;
       const query = {_id : new ObjectId(id)};
       const result = await tutorialCollection.deleteOne(query);
@@ -134,7 +165,7 @@ async function run() {
     })  
 
     // book tutor
-    app.post('/tutor-booking' , async (req ,res)=>{
+    app.post('/tutor-booking' ,verifyToken, async (req ,res)=>{
       const bookedData = req.body;
       const query ={tutorEmail:bookedData.tutorEmail, language:bookedData.language};
       const alredyExist = await bookedTutorsCollection.findOne(query);
@@ -148,7 +179,7 @@ async function run() {
     })
 
     // review tutor
-    app.patch('/review/', async (req ,res)=>{
+    app.patch('/review/',verifyToken, async (req ,res)=>{
       const tutorInfo = req.body;
       const query = { _id : new ObjectId(tutorInfo.tutorId)};
       // reviewed checked
@@ -183,7 +214,7 @@ async function run() {
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
       })
-      .send({message : true})
+      .send({message : "token-set-on-http-only-cookie"})
 
     })
   // remove token from cookie
@@ -193,7 +224,7 @@ async function run() {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict', 
      })
-    res.status(200).send({ message: "Logged out successfully!" });
+    res.status(200).send({ message: "clear jwt token from http only cookie successfully!" });
   })
 
 
