@@ -72,7 +72,10 @@ async function run() {
 
     // get all tutorials
     app.get('/tutorials' , async(req, res)=>{
-         const searchData = req.query.search || "";
+        const page = parseInt(req.query.page);
+        const size = parseInt(req.query.size);
+        const searchData = req.query.search || "";
+
           // {} for search all item 
           let query = {};
           if(searchData){
@@ -82,10 +85,21 @@ async function run() {
                 },
              }
           } 
-          // 
-        const result = await tutorialCollection.find(query).toArray();
-        res.send(result);
+           // 
+        const count = await tutorialCollection.estimatedDocumentCount(query);
+        const tutoirals = await tutorialCollection.find(query)
+        .skip((page -1)* size)
+        .limit(size)
+        .toArray()
+        res.send({
+          count,
+          tutoirals
+        })
+
     })
+
+
+
     // get tutorials by its category
     app.get('/tutors/:category', async(req,res)=>{
        const category = req.params.category;
