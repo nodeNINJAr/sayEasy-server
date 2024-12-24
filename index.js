@@ -10,7 +10,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 // middleware
 app.use(cors({
-    origin:['http://localhost:5175'],
+    origin:['http://localhost:5175','http://localhost:5173'],
     credentials:true,
     optionsSuccessStatus:200
   }
@@ -137,6 +137,7 @@ app.post('/tutor-booking' , async (req ,res)=>{
    const bookedData = req.body;
    const query ={tutorEmail:bookedData.tutorEmail, language:bookedData.language};
    const alredyExist = await bookedTutorsCollection.findOne(query);
+   
   //  validation same tutor with same category
    if(alredyExist){
       return res.status(400).send('This language tutor already booked ')
@@ -151,6 +152,12 @@ app.patch('/review/', async (req ,res)=>{
    const query = { _id : new ObjectId(tutorInfo.tutorId)};
    // reviewed checked
    const tutor = await tutorialCollection.findOne(query);
+
+       // Check if tutor exists
+       if (!tutor) {
+        return 
+     }
+
    if(tutor.reviewedBy && tutor.reviewedBy.includes(tutorInfo._id)){
       return res.status(400).send("You have already reviewed this tutor!");
    }
