@@ -4,6 +4,7 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const jwt = require('jsonwebtoken')
 
 
 
@@ -88,13 +89,13 @@ async function run() {
         const result = await tutorialCollection.findOne(query);
         res.send(result)
     })
-// get booed tutor
- app.get('/booked-tutors/:email', async(req ,res)=>{
-    const buyerEmail = req.params.email;
-    const query = {userEmail: buyerEmail};
-    const result = await bookedTutorsCollection.find(query).toArray();
-    res.send(result)
- })
+    // get booed tutor
+    app.get('/booked-tutors/:email', async(req ,res)=>{
+        const buyerEmail = req.params.email;
+        const query = {userEmail: buyerEmail};
+        const result = await bookedTutorsCollection.find(query).toArray();
+        res.send(result)
+    })
 
 
 
@@ -132,43 +133,70 @@ async function run() {
       res.send(result)
     })  
 
-// book tutor
-app.post('/tutor-booking' , async (req ,res)=>{
-   const bookedData = req.body;
-   const query ={tutorEmail:bookedData.tutorEmail, language:bookedData.language};
-   const alredyExist = await bookedTutorsCollection.findOne(query);
-   
-  //  validation same tutor with same category
-   if(alredyExist){
-      return res.status(400).send('This language tutor already booked ')
-   }
-   const result = await bookedTutorsCollection.insertOne(bookedData);
-   res.send(result);
-})
+    // book tutor
+    app.post('/tutor-booking' , async (req ,res)=>{
+      const bookedData = req.body;
+      const query ={tutorEmail:bookedData.tutorEmail, language:bookedData.language};
+      const alredyExist = await bookedTutorsCollection.findOne(query);
+      
+      //  validation same tutor with same category
+      if(alredyExist){
+          return res.status(400).send('This language tutor already booked ')
+      }
+      const result = await bookedTutorsCollection.insertOne(bookedData);
+      res.send(result);
+    })
 
-// review tutor
-app.patch('/review/', async (req ,res)=>{
-   const tutorInfo = req.body;
-   const query = { _id : new ObjectId(tutorInfo.tutorId)};
-   // reviewed checked
-   const tutor = await tutorialCollection.findOne(query);
+    // review tutor
+    app.patch('/review/', async (req ,res)=>{
+      const tutorInfo = req.body;
+      const query = { _id : new ObjectId(tutorInfo.tutorId)};
+      // reviewed checked
+      const tutor = await tutorialCollection.findOne(query);
 
-       // Check if tutor exists
-       if (!tutor) {
-        return 
-     }
+          // Check if tutor exists
+          if (!tutor) {
+            return 
+        }
 
-   if(tutor.reviewedBy && tutor.reviewedBy.includes(tutorInfo._id)){
-      return res.status(400).send("You have already reviewed this tutor!");
-   }
+      if(tutor.reviewedBy && tutor.reviewedBy.includes(tutorInfo._id)){
+          return res.status(400).send("You have already reviewed this tutor!");
+      }
 
-   const updateReview = {
-          $inc:{review : 1},
-          $push:{reviewedBy: tutorInfo._id},
-   }
-   const result = await tutorialCollection.updateOne(query, updateReview);
-   res.send(result)
-} )
+      const updateReview = {
+              $inc:{review : 1},
+              $push:{reviewedBy: tutorInfo._id},
+      }
+      const result = await tutorialCollection.updateOne(query, updateReview);
+      res.send(result)
+    } )
+
+    // jwt sign in
+    app.post('/jwt', async(req , res)=>{
+      const email = req.body;
+      const token = jwt.sign(email ,process.env.JWT_SECRET , {
+         expiresIn:'5h'
+      });
+      //data set to cookie
+      res.cookie('token' , token , {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+      })
+      .send({message : true})
+
+    })
+  // remove token from cookie
+  app.get('/logout' , async(req , res)=>{
+     res.clearCookie('token', {
+      maxAge:0,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict', 
+     })
+    res.status(200).send({ message: "Logged out successfully!" });
+  })
+
+
 
 
 
