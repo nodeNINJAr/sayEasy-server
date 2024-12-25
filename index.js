@@ -47,6 +47,7 @@ async function run() {
     const database = client.db("sayEasylang");
     const tutorialCollection = database.collection("tutorials");
     const bookedTutorsCollection = database.collection("bookedTutors");
+    const usersCollection = database.collection("users");
 
 
 
@@ -69,13 +70,17 @@ async function run() {
 
     }
 
+    // 
+    app.get('/users',async(req,res)=>{
+      const users = await usersCollection.estimatedDocumentCount();
+      res.send({users})
+    })
 
     // get all tutorials
     app.get('/tutorials' , async(req, res)=>{
         const page = parseInt(req.query.page);
         const size = parseInt(req.query.size);
         const searchData = req.query.search || "";
-
           // {} for search all item 
           let query = {};
           if(searchData){
@@ -85,25 +90,25 @@ async function run() {
                 },
              }
           } 
-           // 
+           // tota count
         const count = await tutorialCollection.estimatedDocumentCount(query);
         const tutoirals = await tutorialCollection.find(query)
         .skip((page -1)* size)
         .limit(size)
         .toArray()
+        // send all api
         res.send({
           count,
-          tutoirals
+          tutoirals,
+      
         })
 
     })
 
 
-
     // get tutorials by its category
     app.get('/tutors/:category', async(req,res)=>{
        const category = req.params.category;
-       console.log(category)
        const query = {language : category};
        const result = await tutorialCollection.find(query).toArray();
        res.send(result)
@@ -222,6 +227,14 @@ async function run() {
       const token = jwt.sign(email ,process.env.JWT_SECRET , {
          expiresIn:'5h'
       });
+
+      // setuser Eamil to user  collection for count total user
+      const query = {userEmail:email.email}
+      const alreadyExist = await usersCollection.findOne(query);
+      if(email?.email !== alreadyExist?.userEmail){
+       await usersCollection.insertOne(query);
+       }
+   
       //data set to cookie
       res.cookie('token' , token , {
         httpOnly: true,
@@ -231,6 +244,7 @@ async function run() {
       .send({message : "token-set-on-http-only-cookie"})
 
     })
+
   // remove token from cookie
   app.get('/logout' , async(req , res)=>{
      res.clearCookie('token', {
