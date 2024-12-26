@@ -12,7 +12,7 @@ const cookieParser = require('cookie-parser');
 
 // middleware
 app.use(cors({
-    origin:['http://localhost:5175','http://localhost:5173'],
+    origin:['http://localhost:5175','http://localhost:5173','https://sayeasy-95352.web.app','sayeasy-95352.firebaseapp.com'],
     credentials:true,
     optionsSuccessStatus:200
   }
