@@ -12,7 +12,7 @@ const cookieParser = require('cookie-parser');
 
 // middleware
 app.use(cors({
-    origin:['http://localhost:5175','http://localhost:5173','https://sayeasy-95352.web.app','sayeasy-95352.firebaseapp.com'],
+    origin:['http://localhost:5175','http://localhost:5173','https://sayeasy-95352.web.app','sayeasy-95352.firebaseapp.com','https://sayeasy.netlify.app'],
     credentials:true,
     optionsSuccessStatus:200
   }
@@ -41,7 +41,7 @@ async function run() {
 
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     // database
     const database = client.db("sayEasylang");
