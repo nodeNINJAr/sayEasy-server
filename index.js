@@ -89,8 +89,21 @@ async function run() {
                   $regex: searchData , $options: "i"
                 },
              }
-          } 
-           // tota count
+          }   
+          // aggregdate for tutor count
+          const tutors = await tutorialCollection.aggregate([
+            {
+              $group:{
+                _id: "$email",
+              }
+            },
+            {
+              $count : "uniqueTutorCount"
+            }
+        ]).toArray()
+        const uniqueTutorCount = tutors.length > 0 ? tutors[0].uniqueTutorCount : 0;
+
+        // total tutorial count
         const count = await tutorialCollection.estimatedDocumentCount(query);
         const tutoirals = await tutorialCollection.find(query)
         .skip((page -1)* size)
@@ -100,6 +113,7 @@ async function run() {
         res.send({
           count,
           tutoirals,
+          uniqueTutorCount
       
         })
 
@@ -263,7 +277,7 @@ async function run() {
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close(); // it need to comments
