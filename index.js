@@ -82,6 +82,7 @@ async function run() {
         const page = parseInt(req.query.page);
         const size = parseInt(req.query.size);
         const searchData = req.query.search || "";
+        const sortedData = req.query.sortBy || 'price';
           // {} for search all item 
           let query = {};
           if(searchData){
@@ -106,7 +107,9 @@ async function run() {
 
         // total tutorial count
         const count = await tutorialCollection.estimatedDocumentCount(query);
-        const tutoirals = await tutorialCollection.find(query)
+        const tutoirals = await tutorialCollection
+        .find(query)
+       .sort({[sortedData]: -1 })
         .skip((page -1)* size)
         .limit(size)
         .toArray()
