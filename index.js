@@ -49,6 +49,9 @@ async function run() {
     const bookedTutorsCollection = database.collection("bookedTutors");
     const usersCollection = database.collection("users");
     const subscribeCollection = database.collection("subscribeUser");
+    const blogCollection = database.collection("blogs");
+    const communityPostCollection = database.collection("posts");
+    const commentsCollection = database.collection("comments");
 
 
 
@@ -65,7 +68,6 @@ async function run() {
                   return res.status(401).send({message : "UnAuthorize Access"})
                }
               req.user = decode;
-              console.log(decode.email);
               next()
           });
 
@@ -165,6 +167,57 @@ async function run() {
         res.send(result)
     })
 
+    // blogs api
+    app.get('/blogs', async(req,res)=>{
+      const result = await blogCollection.find().toArray();
+      res.send(result)
+    })
+    // get community post
+    app.get('/communityPosts', async(req, res)=>{
+      // 
+      const limit = 10;
+      const posts = await communityPostCollection.find({}).toArray();
+
+      const sortedPost = posts.map(post=>({
+        ...post , parsedDate: new Date(post.date)
+      }))
+      .sort((a,b)=> b.parsedDate - a.parsedDate)
+      .slice(0,limit)
+      res.send(sortedPost)
+    })
+
+    // get comments
+    app.get('/comments',verifyToken, async(req, res)=>{
+        const postId = req.query.postId;
+        const filter = {
+            postId:postId
+        }
+
+        const result = await commentsCollection.find(filter).toArray();
+        res.send(result)
+    })
+    // get latest tutorials
+    app.get('/latest-tutorials', async(req, res)=>{
+      const limit= 5
+      const result = await tutorialCollection.find({})
+      .sort({price: -1})
+      .limit(limit)
+      .toArray();
+      res.send(result)
+  })
+  // get specific user post
+  app.get('post/:email',verifyToken, async(req,res)=>{
+    const email = req.params.email;
+    const userEmail = req?.user?.email;
+    if(userEmail !== email){
+       return res.status(403).send({message:"Forbidden Acccess"})
+    }
+    const filter = {
+      userEmail:email
+    }
+    const result = await communityPostCollection.find(filter).toArray();
+    res.send(result);
+  })
 
 
     // post a tutorial
@@ -189,6 +242,23 @@ async function run() {
       const result = await subscribeCollection.insertOne(email);
       res.send(result)
     })
+    //user questions Query
+    app.post('/community',verifyToken, async(req,res)=>{
+       const postData = req.body;
+       if(!postData?.postContent || postData?.postContent.trim()=== ""){
+          return res.send({message:"Write SomeThing"})
+       }
+       const result = await communityPostCollection.insertOne(postData);
+       res.send(result)
+    })
+    // post users comments
+    app.post('/comment',verifyToken, async(req,res)=>{
+      const comment = req.body;
+      const result = await commentsCollection.insertOne(comment);
+      res.send(result);
+    })
+
+
 
     // tutorial update 
     app.patch('/update-tutorials/:id',verifyToken, async(req,res)=>{
@@ -217,6 +287,17 @@ async function run() {
        const result = await bookedTutorsCollection.deleteOne(query);
        res.send(result);
     })
+    // delete specific user post
+    app.delete("post/:id",verifyToken, async(req,res)=>{
+      const id = req.params.id;
+      const query = {
+        _id:new ObjectId(id)
+      }
+      const result = await communityPostCollection.deleteOne(query);
+      res.send({result, message : "Post Deleted"})
+    })
+
+
 
     // book tutor
     app.post('/tutor-booking' ,verifyToken, async (req ,res)=>{
