@@ -48,6 +48,7 @@ async function run() {
     const tutorialCollection = database.collection("tutorials");
     const bookedTutorsCollection = database.collection("bookedTutors");
     const usersCollection = database.collection("users");
+    const subscribeCollection = database.collection("subscribeUser");
 
 
 
@@ -175,6 +176,16 @@ async function run() {
       const result = await tutorialCollection.insertOne(tutorialData);
       res.send(result)
     })
+    //subscribe user email
+    app.post('/subscribe', async(req, res)=>{
+      const email = req.body;
+      const isExist = await subscribeCollection.findOne(email);
+      if(isExist){
+         return res.status(409).send({message:"You Already SubScribe To Us"})
+      }
+      const result = await subscribeCollection.insertOne(email);
+      res.send(result)
+    })
 
     // tutorial update 
     app.patch('/update-tutorials/:id',verifyToken, async(req,res)=>{
@@ -196,16 +207,23 @@ async function run() {
       const result = await tutorialCollection.deleteOne(query);
       res.send(result)
     })  
+    //booked-tutors delete
+    app.delete('/booked-tutors/:id',verifyToken, async(req,res)=>{
+       const id= req.params.id;
+       const query = {_id: new ObjectId(id)};
+       const result = await bookedTutorsCollection.deleteOne(query);
+       res.send(result);
+    })
 
     // book tutor
     app.post('/tutor-booking' ,verifyToken, async (req ,res)=>{
       const bookedData = req.body;
-      const query ={tutorEmail:bookedData.tutorEmail, language:bookedData.language};
+      const query ={userEmail:bookedData.userEmail, language:bookedData.language};
       const alredyExist = await bookedTutorsCollection.findOne(query);
       
       //  validation same tutor with same category
       if(alredyExist){
-          return res.status(400).send('This language tutor already booked ')
+          return res.status(400).send(`A ${bookedData?.language} tutor already booked`)
       }
       const result = await bookedTutorsCollection.insertOne(bookedData);
       res.send(result);
