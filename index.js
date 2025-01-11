@@ -205,15 +205,17 @@ async function run() {
       .toArray();
       res.send(result)
   })
+
+
   // get specific user post
-  app.get('post/:email',verifyToken, async(req,res)=>{
+  app.get('/posts/:email',verifyToken, async(req,res)=>{
     const email = req.params.email;
     const userEmail = req?.user?.email;
-    if(userEmail !== email){
+    if(!req.user || userEmail !== email){
        return res.status(403).send({message:"Forbidden Acccess"})
     }
     const filter = {
-      userEmail:email
+       userEmail:email
     }
     const result = await communityPostCollection.find(filter).toArray();
     res.send(result);
@@ -254,6 +256,10 @@ async function run() {
     // post users comments
     app.post('/comment',verifyToken, async(req,res)=>{
       const comment = req.body;
+      // prevent empty input 
+      if(!comment?.comment || comment?.comment.trim()===""){
+        return res.send({message:"Write SomeThing"})
+      }
       const result = await commentsCollection.insertOne(comment);
       res.send(result);
     })
@@ -288,7 +294,7 @@ async function run() {
        res.send(result);
     })
     // delete specific user post
-    app.delete("post/:id",verifyToken, async(req,res)=>{
+    app.delete("/post/:id",verifyToken, async(req,res)=>{
       const id = req.params.id;
       const query = {
         _id:new ObjectId(id)
@@ -296,7 +302,15 @@ async function run() {
       const result = await communityPostCollection.deleteOne(query);
       res.send({result, message : "Post Deleted"})
     })
-
+  // delete user comments
+app.delete('/comment/:id', async(req,res)=>{
+   const id= req.params.id;
+   const query={
+     _id:new ObjectId(id),
+   }
+   const result = await commentsCollection.deleteOne(query);
+   res.send(result)
+})
 
 
     // book tutor
