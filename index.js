@@ -52,7 +52,7 @@ async function run() {
     const blogCollection = database.collection("blogs");
     const communityPostCollection = database.collection("posts");
     const commentsCollection = database.collection("comments");
-
+    const wishListCollection = database.collection('wishlist');
 
 
     // verify token middleware 
@@ -220,7 +220,17 @@ async function run() {
     const result = await communityPostCollection.find(filter).toArray();
     res.send(result);
   })
-
+  //get all wishlist by specific user
+  app.get('/wishLists',verifyToken, async (req, res)=>{
+     const email = req?.user?.email;
+     const result = await wishListCollection.find({userEmail:email}).toArray();
+    //  
+     const ids = result.map(item=>item?.wishId).filter(Boolean);
+     const objectIds = ids.map(id=> new ObjectId(id));
+     const query = { _id: { $in: objectIds } };
+     const wishList = await tutorialCollection.find(query).toArray();
+     res.send(wishList);
+  })
 
     // post a tutorial
     app.post("/add-tutorials",verifyToken, async(req,res)=>{
@@ -264,7 +274,21 @@ async function run() {
       res.send(result);
     })
 
-
+    // post a wishlist
+    app.post('/add-To-Wishlist',verifyToken, async(req,res)=>{
+        const {id }= req.body;
+        const userEmail = req?.user?.email;
+        // 
+        const info = {
+           wishId:id,
+           userEmail,
+        }
+        if(!info) return res.send({message:"please provide data"});
+        const isExist = await wishListCollection.findOne({wishId:id})
+        if(isExist) return res.send({message:"This tutor Already have on your wishlist"})
+        const result = await wishListCollection.insertOne(info);
+        res.send(result);
+    })
 
     // tutorial update 
     app.patch('/update-tutorials/:id',verifyToken, async(req,res)=>{
@@ -303,15 +327,19 @@ async function run() {
       res.send({result, message : "Post Deleted"})
     })
   // delete user comments
-app.delete('/comment/:id', async(req,res)=>{
-   const id= req.params.id;
-   const query={
-     _id:new ObjectId(id),
-   }
-   const result = await commentsCollection.deleteOne(query);
-   res.send(result)
-})
-
+  app.delete('/comment/:id', async(req,res)=>{
+    const id= req.params.id;
+    const query={
+      _id:new ObjectId(id),
+    }
+    const result = await commentsCollection.deleteOne(query);
+    res.send(result)
+  })
+  app.delete('/wishlist/:id',verifyToken, async(req,res)=>{
+      const id = req.params.id;
+      const result = await wishListCollection.deleteOne({wishId: id});
+      res.status(200).send(result)
+  })
 
     // book tutor
     app.post('/tutor-booking' ,verifyToken, async (req ,res)=>{
@@ -384,10 +412,6 @@ app.delete('/comment/:id', async(req,res)=>{
      })
     res.status(200).send({ message: "clear jwt token from http only cookie successfully!" });
   })
-
-
-
-
 
 
 
