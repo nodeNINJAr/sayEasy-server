@@ -221,8 +221,8 @@ async function run() {
     res.send(result);
   })
   //get all wishlist by specific user
-  app.get('/wishLists',verifyToken, async (req, res)=>{
-     const email = req?.user?.email;
+  app.get('/wishLists/:email', async (req, res)=>{
+     const email = req?.params?.email;
      const result = await wishListCollection.find({userEmail:email}).toArray();
     //  
      const ids = result.map(item=>item?.wishId).filter(Boolean);
@@ -283,7 +283,7 @@ async function run() {
            wishId:id,
            userEmail,
         }
-        if(!info) return res.send({message:"please provide data"});
+        if(!info) return res.send({message:"please provided the value"});
         const isExist = await wishListCollection.findOne({wishId:id})
         if(isExist) return res.send({message:"This tutor Already have on your wishlist"})
         const result = await wishListCollection.insertOne(info);
