@@ -197,40 +197,79 @@ async function run() {
         res.send(result)
     })
     // get latest tutorials
-    app.get('/latest-tutorials', async(req, res)=>{
-      const limit= 5
-      const result = await tutorialCollection.find({})
-      .sort({price: -1})
-      .limit(limit)
-      .toArray();
-      res.send(result)
-  })
+      app.get('/latest-tutorials', async(req, res)=>{
+        const limit= 5
+        const result = await tutorialCollection.find({})
+        .sort({price: -1})
+        .limit(limit)
+        .toArray();
+        res.send(result)
+    })
 
 
-  // get specific user post
-  app.get('/posts/:email',verifyToken, async(req,res)=>{
-    const email = req.params.email;
-    const userEmail = req?.user?.email;
-    if(!req.user || userEmail !== email){
-       return res.status(403).send({message:"Forbidden Acccess"})
-    }
-    const filter = {
-       userEmail:email
-    }
-    const result = await communityPostCollection.find(filter).toArray();
-    res.send(result);
-  })
-  //get all wishlist by specific user
-  app.get('/wishLists/:email', async (req, res)=>{
-     const email = req?.params?.email;
-     const result = await wishListCollection.find({userEmail:email}).toArray();
-    //  
-     const ids = result.map(item=>item?.wishId).filter(Boolean);
-     const objectIds = ids.map(id=> new ObjectId(id));
-     const query = { _id: { $in: objectIds } };
-     const wishList = await tutorialCollection.find(query).toArray();
-     res.send(wishList);
-  })
+    // get specific user post
+    app.get('/posts/:email',verifyToken, async(req,res)=>{
+      const email = req.params.email;
+      const userEmail = req?.user?.email;
+      if(!req.user || userEmail !== email){
+        return res.status(403).send({message:"Forbidden Acccess"})
+      }
+      const filter = {
+        userEmail:email
+      }
+      const result = await communityPostCollection.find(filter).toArray();
+      res.send(result);
+    })
+  // get wislist item by user
+    app.get('/wishLists/:email', async (req, res) => {
+      const email = req?.params?.email;
+
+      try{
+        
+        const wishList =await wishListCollection.aggregate([
+          {
+            $match:{
+              userEmail:email}
+          },
+          {
+              // string to convert obj id
+          $addFields:{   
+            wishId: {$toObjectId : '$wishId'}
+          },
+          },
+          {
+            $lookup:{
+              from:'tutorials',
+              localField:"wishId",
+              foreignField:"_id",
+              as:"tutorialDetails",
+            }
+          },
+          {
+            $unwind: '$tutorialDetails',
+          },
+          {
+            $addFields:{
+                tutorName:'$tutorialDetails.name',
+                tutorImage:'$tutorialDetails.tutorImage',
+                price:'$tutorialDetails.price',
+                language:'$tutorialDetails.language'
+
+            }
+          },
+          {
+            $project:{
+        
+              tutorialDetails:0,
+            }
+          }
+        ]).toArray()
+        res.send(wishList);
+      } catch (error) {
+        console.error('Error fetching wishlists:', error);
+        res.status(500).send('Internal Server Error');
+      }
+    });
 
     // post a tutorial
     app.post("/add-tutorials",verifyToken, async(req,res)=>{
@@ -276,18 +315,25 @@ async function run() {
 
     // post a wishlist
     app.post('/add-To-Wishlist',verifyToken, async(req,res)=>{
-        const {id }= req.body;
+        const {id,email}= req.body;
         const userEmail = req?.user?.email;
         // 
         const info = {
            wishId:id,
            userEmail,
         }
-        if(!info || !userEmail) return res.send({message:"please provided the value"});
-        const isExist = await wishListCollection.findOne({wishId:id})
-        if(isExist) return res.send({message:"This tutor Already have on your wishlist"})
+         
+        if(userEmail !== email) return res.send({message:"unAuthorize Access"}) 
+
+        if(!id || !email) return res.send({message:"please provided the value"});
+        const isExist = await wishListCollection.findOne({wishId:id, userEmail})
+        if(isExist) {
+          return res.send({message:"This tutor Already have on your wishlist"});
+        } 
+        
         const result = await wishListCollection.insertOne(info);
         res.send(result);
+        
     })
 
     // tutorial update 
@@ -337,7 +383,7 @@ async function run() {
   })
   app.delete('/wishlist/:id',verifyToken, async(req,res)=>{
       const id = req.params.id;
-      const result = await wishListCollection.deleteOne({wishId: id});
+      const result = await wishListCollection.deleteOne({_id: new ObjectId(id)});
       res.status(200).send(result)
   })
 
