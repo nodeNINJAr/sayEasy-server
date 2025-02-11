@@ -283,7 +283,7 @@ async function run() {
            wishId:id,
            userEmail,
         }
-        if(!info) return res.send({message:"please provided the value"});
+        if(!info || !userEmail) return res.send({message:"please provided the value"});
         const isExist = await wishListCollection.findOne({wishId:id})
         if(isExist) return res.send({message:"This tutor Already have on your wishlist"})
         const result = await wishListCollection.insertOne(info);
